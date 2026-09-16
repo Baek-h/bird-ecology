@@ -1,92 +1,149 @@
 # 鸟类图像处理与生态评价
 
-## 下载完整运行材料
+基于 OpenCV 传统图像处理的鸟类分析系统。使用完整 CUB-200-2011 数据集进行前景分割、200 类鸟类识别和图像特征分析，并结合 AVONET 物种性状开展生态回归与探索性聚类。
 
-全部程序源代码集中在本仓库的 `源代码/` 文件夹，随机种子 seed=2026。
-大型模型和全量预处理特征请从本仓库 **Releases** 下载手动上传的“图像处理综合实践_最终提交包.zip”。GitHub 自动生成的 Source code 压缩包不包含这些大文件。
-解压完整提交包后进入 `最终提交材料/源代码/`，再按下方说明启动；下文“本目录”均指该目录。
+项目提供 Python Tkinter 桌面界面，支持图像浏览、名称检索、单张分析、批量处理及 CSV 导出。核心算法由传统图像处理算子和轻量机器学习模型组成，未使用 SAM、YOLO 或深度预训练模型。
 
-预处理特征为 `results/features.npz`，形状为 11788×5×795；顺序见 `results/image_index.csv`，字段定义见 `results/feature_schema.json`。这是预处理后提取的全量特征数据，不是原始照片或预处理图像文件集。模型位于 `models/`。原始图像通过官方下载脚本获取。
+## 功能与方法
 
-完整 CUB-200-2011 的传统 OpenCV 综合实践项目。包含 200 类、11,788 张图像的全量实验、九组分类对照、官方分割标注评价、AVONET 生态回归、PCA 与中文桌面界面。没有使用 SAM、YOLO 或深度预训练模型。
+| 模块 | 实现 |
+| --- | --- |
+| 图像预处理 | 等比例缩放、双边滤波 |
+| 前景分割 | Lab 边界背景建模、Otsu 阈值、形态学处理、GrabCut |
+| 几何对齐 | 前景主轴估计与仿射旋转 |
+| 特征提取 | 颜色直方图、GLCM、LBP、形状、盒计数维数、投影对称性、HOG，共 795 维 |
+| 分类与评价 | RBF-SVM、九组分类与消融实验、IoU / Dice 分割评价 |
+| 生态分析 | AVONET 性状映射、岭回归、PCA 与 K-means 聚类 |
+| 桌面界面 | 数据检索、单张与批量分析、结果导出、实验统计 |
 
-## 本机启动
+## 实验结果
 
-双击 `启动界面.cmd`。已训练的模型无需重算。数据位于 `D:/图像处理综合实践/datasets`，配置文件为 `config.json`。
+使用全部 **200 类、11,788 张图像**，按官方划分使用 5,994 张训练图像和 5,794 张测试图像。随机种子为 `2026`；分类参数和最终方案均根据训练集内部的验证集选择。
 
-界面左侧可按英文名称或文件名检索，支持训练集与测试集筛选、每页 100 条浏览。选图后点击“开始分析”，或导入自己的图片。“批量处理”支持多张图片及 CSV 导出，“数据与实验统计”显示实际运行结果。
+| 指标 | 结果 |
+| --- | ---: |
+| 所选分类方案 | without_hog |
+| 测试集 Top-1 | 10.06% |
+| 测试集 Top-5 | 26.56% |
+| 测试集 Macro-F1 | 0.0987 |
+| 完整分割流程平均 IoU | 0.4936 |
+| 完整分割流程平均 Dice | 0.6102 |
 
-## 迁移安装
+传统特征在复杂背景下的细粒度识别仍存在明显局限。AVONET 匹配覆盖 195 个类别，其余 5 个标签因物种范围不明确而保留空值，全部图像仍参与分类和分割实验。
 
-建议 Python 3.11，与本次实验环境一致。终端进入本目录后运行：
+## 目录结构
 
-```powershell
+全部程序集中在 `源代码/` 中：
+
+```text
+源代码/
+├── app.py                    # Tkinter 界面
+├── inference.py              # 单张与批量推理
+├── core.py                   # 分割、对齐和特征提取
+├── download_data.py          # 官方数据下载与校验
+├── prepare_metadata.py       # AVONET 物种对应
+├── extract_features.py       # 全量特征提取
+├── train_evaluate.py         # 训练、消融与评价
+├── select_production.py      # 按验证结果选择模型
+├── cluster_analysis.py       # PCA 与聚类分析
+├── make_examples.py          # 结果图与案例
+├── verify.py                 # 数据与推理一致性校验
+├── window_capture.py         # 应用窗口截图
+├── run_all.py                # 完整实验入口
+├── metadata/                 # 物种对应表和数据来源记录
+├── config.json               # 数据路径与实验配置
+├── requirements.txt          # 依赖版本
+├── 启动界面.cmd
+└── 重新运行实验.cmd
+```
+
+`models/` 和 `results/` 在运行实验后生成。本仓库当前已发布源码与元数据，**尚未发布包含模型及全量特征的 Release 附件**。仅下载仓库源码时，需要先运行完整实验，再启动界面。
+
+## 安装与运行
+
+已验证环境：Windows、Python 3.11.3、OpenCV 4.10.0、scikit-learn 1.6.1。以下命令在 **Windows CMD** 中逐行执行。
+
+**1. 获取代码并安装依赖**
+
+```bat
+git clone https://github.com/Baek-h/bird-ecology.git
+cd bird-ecology\源代码
 python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python download_data.py --root D:/bird_data
+.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-将 `config.json` 的 `data_root` 改为实际数据路径，然后：
+Python 安装需包含 Tcl/Tk，以运行 Tkinter 界面。
 
-```powershell
-.venv\Scripts\python app.py
+**2. 设置数据目录**
+
+编辑 `config.json`，将 `data_root` 设置为本机可用路径，例如：
+
+```json
+{
+  "data_root": "D:/bird_data",
+  "seed": 2026,
+  "workers": 4
+}
 ```
 
-Tkinter 随标准 Windows Python 安装，不需要 pip 安装。Anaconda 环境使用现有 Python 即可。
+**3. 下载数据并复现实验**
 
-## 全部实验复现
-
-```powershell
-python run_all.py
+```bat
+.venv\Scripts\python.exe run_all.py
 ```
 
-执行顺序为数据下载校验 → 物种映射 → 全量特征提取 → 训练评价 → 示例图 → 一致性校验。不要删除原始数据。若修改 `core.py`，请改用新的缓存版本目录，避免复用旧算法缓存。
+程序依次执行官方下载与校验、物种对应、全量特征提取、分类及生态回归、生产模型选择、聚类分析、案例生成和一致性校验。首次运行会下载完整数据并训练模型，耗时取决于网络和计算机性能。
 
-`download_data.py` 独立运行时默认使用课程目录。`run_all.py` 自动将 config.json 中的数据路径传给下载脚本。下载支持断点续传，压缩包校验失败不会标为完成。
+**4. 启动界面**
 
-## 命令行批量推理
-
-```powershell
-python inference.py image1.jpg image2.png --csv results/my_batch.csv
+```bat
+.venv\Scripts\python.exe app.py
 ```
 
-损坏图像在输出中单独记录错误，其余图像继续处理。预测只使用像素，不读取图像名称中的类别信息。
+已有完整 `models/`、`results/`、`metadata/` 和原始数据时，可跳过训练。确认 `config.json` 中的数据路径正确后启动界面。
 
-## 数据与模型
+界面中的“图像浏览与分析”用于检索和单张处理；“批量处理”支持多图分析与 CSV 导出；“数据与实验统计”展示数据规模和实验指标。
 
-- `models/production.joblib`：仅根据验证集选择的生产分类模型。
-- `models/ecology.joblib`：独立的 full 特征生态回归模型。
-- `models/pca.joblib`：训练集拟合的标准化器与 PCA。
-- `results/features.npz`：全部 11,788 张图像的 5×795 维预处理特征及逐图分割分数。
-- `results/image_index.csv`：特征矩阵的图像顺序，包含官方训练测试标记。
-- `results/classification_metrics.json`：全部分类实验与选参记录。
-- `results/test_predictions.csv`：全部官方测试图像的九组预测。
-- `results/segmentation_per_image.csv`：全部图像逐图 IoU 和 Dice。
-- `results/ecology_split.json`：按物种留出的独立生态评价协议。
-- `results/verification.json`：自动验收结果。
-- `metadata/species_crosswalk.csv`：200 类对应表，未确认字段明确留空。
+## 命令行批量分析
 
-## 评价解释
+在模型与结果文件已准备好的情况下运行：
 
-图像分类固定使用官方 5,994/5,794 训练测试划分。训练内部再分层划分验证集，测试集不参与参数选择。分割真值、边界框、人工部位与属性均不进入特征生成。PCA 与标准化器仅在训练集拟合。
+```bat
+.venv\Scripts\python.exe inference.py image1.jpg image2.png --csv results/my_batch.csv
+```
 
-AVONET 对应 195 个类别；Frigatebird、Nighthawk、Sayornis、Geococcyx、Tree Sparrow 五个含糊标签不猜测物种。它们全部参与图像实验，仅缺失生态标签。历史分类范围与人工明确别名在 match_note 中记录。
+损坏图片单独记录错误，其余图片继续处理。预测依据图像像素，不使用文件名中的类别信息。
 
-SVM 得分不是概率。AVONET 是物种平均性状，查表值以识别正确为前提。回归值是探索性估计，可能超出合理范围，不是照片中个体的实测值。二维投影对称性不等于生物学双侧对称性；PCA 图不证明适应性演化。
+## 输出文件与可复现性
 
-## 官方来源
+| 路径（相对于源代码目录） | 内容 |
+| --- | --- |
+| `models/production.joblib` | 按验证集选择的分类模型 |
+| `models/ecology.joblib` | 生态性状回归模型 |
+| `results/features.npz` | 全量预处理特征，形状为 11788×5×795 |
+| `results/image_index.csv` | 特征对应的图像顺序与官方划分 |
+| `results/feature_schema.json` | 特征字段定义 |
+| `results/classification_metrics.json` | 分类指标与选参记录 |
+| `results/test_predictions.csv` | 九组实验的测试集预测 |
+| `results/segmentation_per_image.csv` | 逐图 IoU 与 Dice |
+| `results/ecology_split.json` | 生态回归的物种留出划分 |
+| `results/verification.json` | 自动校验记录 |
 
-- CUB 图像及课程研究使用限制：https://www.vision.caltech.edu/datasets/cub_200_2011/
-- 图像归档：https://data.caltech.edu/records/65de6-vp158
-- 分割标注：https://data.caltech.edu/records/w9d68-gec53
-- AVONET 数据：https://api.figshare.com/v2/articles/16586228
-- AVONET 论文：https://doi.org/10.1111/ele.13898
-- eBird 名称对应：https://api.ebird.org/v2/ref/taxonomy/ebird?fmt=csv&version=2021
+`features.npz` 保存的是预处理后提取的特征矩阵，不是处理后的图片文件集。原始数据保存在 `data_root` 指定目录，下载器支持断点续传并核对压缩包 MD5。
 
-保留实际 API 响应和哈希；eBird 版本参数可能被服务器忽略，历史物种范围按 AVONET 工作簿解释。
+标准化与 PCA 仅在训练数据上拟合；分割真值只用于评分，不参与特征生成。生态回归采用整物种留出，避免同一物种的平均性状同时出现在训练和评价中。修改核心算法后，应更换特征缓存版本目录并重新提取特征。
 
-## GitHub 提交
+## 结果解释
 
-本交付未上传远程账号。源码、指标、说明和截图可以作为仓库内容；模型与全量特征较大，建议通过 Release 或 Git LFS 提供。`.gitignore` 默认排除这些大文件，发布时必须另外附上它们，否则他人需要重新训练。原始 CUB 图像通过官方脚本获取并保留非商业研究及教育用途限制，不将数据来源误标为本人原创。
+SVM 决策分数不是概率。界面分别显示识别后查询的 AVONET 物种平均性状和图像回归估计，两者均不等于照片中个体的实测值。二维投影对称性不能直接代表生物学双侧对称性，PCA 与聚类结果仅描述图像特征关联，不能证明适应性演化。
 
-提交前补齐报告封面的姓名、学号和学院，并按老师要求打印报告、进行现场展示及提供实际仓库地址。
+## 数据来源
+
+- [CUB-200-2011 项目主页](https://www.vision.caltech.edu/datasets/cub_200_2011/)
+- [CUB 图像归档](https://data.caltech.edu/records/65de6-vp158)
+- [CUB 分割标注](https://data.caltech.edu/records/w9d68-gec53)
+- [AVONET 数据记录](https://api.figshare.com/v2/articles/16586228)
+- [AVONET 论文](https://doi.org/10.1111/ele.13898)
+- [eBird 鸟类分类数据](https://api.ebird.org/v2/ref/taxonomy/ebird?fmt=csv&version=2021)
+
+数据权利归原作者或发布机构所有，使用时应遵守各数据源的许可与引用要求。仓库保留名称对应表、实际分类数据响应及来源校验记录；历史物种范围按 AVONET 工作簿解释。
