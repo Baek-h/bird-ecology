@@ -1,0 +1,7 @@
+{
+  "requested_url": "https://api.ebird.org/v2/ref/taxonomy/ebird?fmt=csv&version=2021",
+  "warning": "API may return latest taxonomy despite version request; response preserved and hashed; explicit historical aliases use AVONET workbook taxonomy.",
+  "sha256": "dc858f211b91bf667f3ff0b1e59b8ff1a38c3aa076d2d7b5872415d0464242e9",
+  "mapped": 195,
+  "total": 200
+}

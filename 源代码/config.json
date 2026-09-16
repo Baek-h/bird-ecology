@@ -1,0 +1,5 @@
+{
+  "data_root": "D:/图像处理综合实践/datasets",
+  "seed": 2026,
+  "workers": 4
+}
